@@ -382,3 +382,101 @@ validated_zones = validate_wick_in_legin(zones)
 You can call this function in your existing code where the zones are being processed, similar to how the "formation of legout" validation is applied.
 
 Would you like help integrating this validation into your existing workflow or modifying your current code to accommodate both validations? Let me know!
+
+
+
+
+
+
+
+
+
+
+To implement a **"buffer" validation** that adjusts the **entry** and **stop-loss** based on a percentage of the **Daily Average True Range (DATR)**, we will allow custom input for the buffer percentage. This validation will prevent stop-losses or missed entries due to market volatility.
+
+### Buffer Logic:
+1. **Entry Buffer**: Adjust the entry price by adding or subtracting a percentage of the DATR.
+   - For **demand zones**, the entry will be reduced by the buffer to catch entries in volatile markets.
+   - For **supply zones**, the entry will be increased by the buffer.
+   
+2. **Stop-loss Buffer**: Adjust the stop-loss price based on a buffer to avoid getting stopped out due to volatility.
+   - The buffer will be added to or subtracted from the stop-loss.
+
+### Implementation:
+
+```python
+def apply_buffer(zones, datr, buffer_percent):
+    validated_zones = []
+
+    for zone in zones:
+        entry_price = zone['entry_price']
+        stop_loss_price = zone['stop_loss_price']
+        zone_type = zone['zone_type']  # 'demand' or 'supply'
+
+        # Calculate buffer based on DATR
+        buffer_amount = (datr * buffer_percent) / 100
+
+        # Apply buffer to demand zones
+        if zone_type == 'demand':
+            adjusted_entry = entry_price - buffer_amount  # Buffer to reduce entry price
+            adjusted_stop_loss = stop_loss_price + buffer_amount  # Buffer to widen stop-loss
+            
+            zone['adjusted_entry'] = adjusted_entry
+            zone['adjusted_stop_loss'] = adjusted_stop_loss
+            validated_zones.append(zone)
+
+        # Apply buffer to supply zones
+        elif zone_type == 'supply':
+            adjusted_entry = entry_price + buffer_amount  # Buffer to increase entry price
+            adjusted_stop_loss = stop_loss_price - buffer_amount  # Buffer to widen stop-loss
+            
+            zone['adjusted_entry'] = adjusted_entry
+            zone['adjusted_stop_loss'] = adjusted_stop_loss
+            validated_zones.append(zone)
+
+    return validated_zones
+```
+
+### Explanation:
+1. **datr**: The **Daily Average True Range** for the stock, which is used to calculate the buffer.
+2. **buffer_percent**: The percentage of DATR to be used as the buffer (custom input).
+3. **Adjusted Entry/Stop-loss**:
+   - **Demand Zones**:
+     - The entry price is reduced by the buffer amount to improve chances of entry during volatility.
+     - The stop-loss is increased by the buffer amount to avoid premature stop-outs.
+   - **Supply Zones**:
+     - The entry price is increased by the buffer amount to avoid missed entries.
+     - The stop-loss is reduced by the buffer amount to avoid stop-outs.
+
+### Example Usage:
+
+```python
+zones = [
+    {'symbol': 'AAPL', 'zone_type': 'demand', 'entry_price': 140, 'stop_loss_price': 135},
+    {'symbol': 'TSLA', 'zone_type': 'supply', 'entry_price': 700, 'stop_loss_price': 720},
+]
+
+datr = 10  # Example Daily ATR value
+buffer_percent = 5  # User can input the buffer percentage, e.g., 5%
+
+buffered_zones = apply_buffer(zones, datr, buffer_percent)
+
+for zone in buffered_zones:
+    print(f"Symbol: {zone['symbol']}, Adjusted Entry: {zone['adjusted_entry']}, Adjusted Stop Loss: {zone['adjusted_stop_loss']}")
+```
+
+### Integrating Custom Input for Buffer:
+In your **user interface**, you can allow the user to input a custom buffer percentage. Here's how you might add that to your existing setup:
+
+```python
+buffer_percent = float(input("Enter buffer percentage (e.g., 2 for 2%): "))
+
+# Apply buffer to the zones with the user-defined buffer percentage
+buffered_zones = apply_buffer(zones, datr, buffer_percent)
+```
+
+### Next Steps:
+- **Integrate into the existing strategy**: Add this validation right before backtesting or when defining entries and stop-losses.
+- **Customizable Buffer Input**: Allow the user to set the buffer percentage dynamically based on market conditions or preferences.
+  
+Would you like assistance with integrating this buffer logic into your code or any further refinements? Let me know!
