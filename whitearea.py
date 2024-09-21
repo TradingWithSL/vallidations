@@ -860,6 +860,101 @@ supply          1h         2024-09-20     1.33
 - **Add the opposing zone details** to the table or output, displaying it clearly for each main zone.
 
 Would you like assistance with integrating this or further customization? Let me know!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Yes, you can definitely customize the entry condition to use the **upper body** for demand zones and the **lower body** for supply zones, instead of using the wick. You can also make this option configurable so that the user can choose whether to use the wick or the body for entry.
+
+### Steps to Modify Entry Conditions:
+
+1. **Optional Entry Setting**: Allow the user to select whether to use the wick or the body (upper or lower) for entry.
+2. **Modify Entry Calculation**:
+   - For **demand zones**, calculate the entry based on the **upper body** (i.e., the open price of the boring candle).
+   - For **supply zones**, calculate the entry based on the **lower body** (i.e., the close price of the boring candle).
+
+### Code Implementation:
+
+```python
+def calculate_entry(boring_candle, zone_type, use_wick=True):
+    if use_wick:
+        # Entry based on wick (current logic)
+        entry = boring_candle['high'] if zone_type == 'demand' else boring_candle['low']
+    else:
+        # Entry based on upper body for demand, lower body for supply
+        if zone_type == 'demand':
+            entry = boring_candle['open']  # Use the open price for demand zones
+        else:
+            entry = boring_candle['close']  # Use the close price for supply zones
+    return entry
+```
+
+### Explanation:
+- **use_wick**: This is a configurable option that determines whether the entry is based on the **wick** or the **body** of the boring candle.
+   - **True**: Uses the wick for the entry (high for demand, low for supply).
+   - **False**: Uses the body (upper body for demand and lower body for supply).
+- **boring_candle**: The candle before the legout candle (used to define the entry).
+   - **For demand**: Entry based on the **open** price.
+   - **For supply**: Entry based on the **close** price.
+
+### Example Usage:
+
+```python
+boring_candle = {'open': 140, 'close': 135, 'high': 145, 'low': 130}
+zone_type = 'demand'
+
+# Calculate entry with wick (current behavior)
+entry_with_wick = calculate_entry(boring_candle, zone_type, use_wick=True)
+print(f"Entry with wick: {entry_with_wick}")
+
+# Calculate entry with body (new behavior)
+entry_with_body = calculate_entry(boring_candle, zone_type, use_wick=False)
+print(f"Entry with body: {entry_with_body}")
+```
+
+### Expected Output:
+For **demand zones**:
+```
+Entry with wick: 145  # Based on high (wick)
+Entry with body: 140  # Based on open (upper body)
+```
+
+For **supply zones** (with the same candle data but zone_type = 'supply'):
+```
+Entry with wick: 130  # Based on low (wick)
+Entry with body: 135  # Based on close (lower body)
+```
+
+### Adding the Configurable Option:
+You can allow the user to choose whether to use the wick or body for entry in your user interface. For example, you could add a checkbox or a dropdown menu:
+
+```python
+# Allow user to choose entry type in the UI
+use_wick = input("Use wick for entry? (yes/no): ").lower() == 'yes'
+
+# Pass this option to the calculate_entry function
+entry = calculate_entry(boring_candle, zone_type, use_wick)
+print(f"Calculated entry: {entry}")
+```
+
+### Next Steps:
+- **Integrate this function** into your existing logic where entry prices are calculated.
+- Add a **user option** (e.g., in a form or settings) to select between using the **wick** or **body** for entry.
+
+Let me know if you need help integrating this logic into your code or if you'd like further customization!
 - **Display the status** in your UI, indicating whether the 3-legout candles are valid or if there's a gap.
 
 Let me know if you need help integrating this or adjusting it further!
