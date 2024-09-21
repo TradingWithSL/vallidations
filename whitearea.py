@@ -480,3 +480,270 @@ buffered_zones = apply_buffer(zones, datr, buffer_percent)
 - **Customizable Buffer Input**: Allow the user to set the buffer percentage dynamically based on market conditions or preferences.
   
 Would you like assistance with integrating this buffer logic into your code or any further refinements? Let me know!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+To implement the **MTF (Multi Time Frame Analysis)** validation, the goal is to:
+- Identify the **main zone** on a specific time frame (e.g., 15m).
+- Find if there are zones in the same price range on smaller or larger time frames.
+- Treat the zone on the 15m time frame as the **main zone** and list other zones on different time frames as **MTF zones**.
+- Allow the user to view this analysis through a filter that lists the **main zone** first, followed by related MTF zones.
+
+### Logic for MTF Validation:
+1. **Identify the Main Zone**: Find a zone created on a specific time frame (e.g., 15m).
+2. **Check for Related Zones**:
+   - Look for zones within the **same price range** on either smaller or larger time frames.
+   - If related zones are found, they are added as MTF zones.
+3. **Filter**:
+   - Provide a way to view the **main zone** (e.g., 15m), followed by the smaller and larger time frame zones (MTF).
+
+### Code Implementation:
+
+```python
+def validate_mtf(zones):
+    mtf_zones = []
+    main_zones = []
+
+    for main_zone in zones:
+        main_time_frame = main_zone['time_frame']
+        main_entry_price = main_zone['entry_price']
+        main_stop_loss = main_zone['stop_loss_price']
+        
+        # Store zones on other time frames that fall within the main zone's entry/stop-loss range
+        related_zones = []
+        
+        for other_zone in zones:
+            if other_zone == main_zone:
+                continue  # Skip the main zone itself
+
+            other_time_frame = other_zone['time_frame']
+            other_entry_price = other_zone['entry_price']
+            other_stop_loss = other_zone['stop_loss_price']
+
+            # Check if the other zone is in the same price range as the main zone
+            if main_stop_loss <= other_entry_price <= main_entry_price or main_stop_loss <= other_stop_loss <= main_entry_price:
+                related_zones.append(other_zone)
+        
+        # If related zones are found on smaller/larger time frames, append the main zone with MTF
+        if related_zones:
+            mtf_entry = {
+                'main_zone': main_zone,
+                'related_zones': related_zones
+            }
+            mtf_zones.append(mtf_entry)
+        else:
+            main_zones.append(main_zone)
+
+    return main_zones, mtf_zones
+```
+
+### Example of How to Use:
+
+```python
+zones = [
+    {'symbol': 'AAPL', 'time_frame': '15m', 'entry_price': 140, 'stop_loss_price': 135},
+    {'symbol': 'AAPL', 'time_frame': '5m', 'entry_price': 141, 'stop_loss_price': 136},
+    {'symbol': 'AAPL', 'time_frame': '1h', 'entry_price': 139, 'stop_loss_price': 134},
+    {'symbol': 'TSLA', 'time_frame': '15m', 'entry_price': 700, 'stop_loss_price': 680},
+    # Add more zones
+]
+
+main_zones, mtf_zones = validate_mtf(zones)
+
+# Print the results
+print("Main Zones:")
+for zone in main_zones:
+    print(f"Symbol: {zone['symbol']}, Time Frame: {zone['time_frame']}, Entry: {zone['entry_price']}, Stop Loss: {zone['stop_loss_price']}")
+
+print("\nMTF Zones:")
+for mtf in mtf_zones:
+    print(f"Main Zone: {mtf['main_zone']['time_frame']}")
+    for related in mtf['related_zones']:
+        print(f"   Related Zone: {related['time_frame']}")
+```
+
+### Explanation:
+- **Main Zones**: These are the zones that do not have any smaller/larger time frames in the same price range.
+- **MTF Zones**: If zones on smaller or larger time frames are found in the same price range, they are stored along with the main zone in a combined structure.
+
+### Adding the MTF Filter in UI:
+
+You can create a filter in your user interface that lists the **main zone** first, followed by related zones in smaller or larger time frames. Here's an example of how to format the MTF zones:
+
+```python
+def display_mtf_zones(mtf_zones):
+    for mtf in mtf_zones:
+        print(f"Main Zone: {mtf['main_zone']['time_frame']} (Symbol: {mtf['main_zone']['symbol']})")
+        for related in mtf['related_zones']:
+            print(f"    MTF: {related['time_frame']} (Symbol: {related['symbol']})")
+
+display_mtf_zones(mtf_zones)
+```
+
+This will output:
+```
+Main Zone: 15m (Symbol: AAPL)
+    MTF: 5m (Symbol: AAPL)
+    MTF: 1h (Symbol: AAPL)
+```
+
+### Next Steps:
+- You can integrate this logic into your existing code where you process zones.
+- Add the **MTF filter** in your frontend (if applicable) to allow users to toggle between viewing **single time frame zones** and **multi time frame analysis**.
+  
+Would you like assistance integrating this logic into your current system, or help with the user interface part to filter and display the MTF zones?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Thanks for the clarification! Here's the updated version of the **"3 Legout candle"** validation to account for both **demand** (green candles) and **supply** (red candles). 
+
+### Updated Logic:
+1. For **demand zones**, all three legout candles should be **green** (i.e., close > open).
+2. For **supply zones**, all three legout candles should be **red** (i.e., close < open).
+3. Ensure the 1st and 2nd candles' close/open are almost the same, and the 2nd and 3rd follow the same condition.
+4. Highlight if there's a **gap**.
+
+### Code Implementation:
+
+```python
+def validate_3_legout_candle(candles, zone_type, tolerance=0.01):
+    validated_legouts = []
+
+    for i in range(len(candles) - 2):
+        # Extract the first, second, and third legout candles
+        first_legout = candles[i]
+        second_legout = candles[i + 1]
+        third_legout = candles[i + 2]
+        
+        # Determine the legout color based on zone type
+        if zone_type == 'demand':
+            # All three legouts must be green (close > open)
+            if first_legout['close'] > first_legout['open'] and second_legout['close'] > second_legout['open'] and third_legout['close'] > third_legout['open']:
+                
+                # Check for gaps
+                first_to_second_gap = abs(first_legout['close'] - second_legout['open']) <= tolerance
+                second_to_third_gap = abs(second_legout['close'] - third_legout['open']) <= tolerance
+
+                # Define the range from 1st close to 3rd high
+                legout_range = {
+                    'range_start': first_legout['close'], 
+                    'range_end': third_legout['high'], 
+                    'symbol': first_legout['symbol'],
+                    'status': 'Gap' if not (first_to_second_gap and second_to_third_gap) else 'Valid'
+                }
+
+                validated_legouts.append(legout_range)
+
+        elif zone_type == 'supply':
+            # All three legouts must be red (close < open)
+            if first_legout['close'] < first_legout['open'] and second_legout['close'] < second_legout['open'] and third_legout['close'] < third_legout['open']:
+                
+                # Check for gaps
+                first_to_second_gap = abs(first_legout['close'] - second_legout['open']) <= tolerance
+                second_to_third_gap = abs(second_legout['close'] - third_legout['open']) <= tolerance
+
+                # Define the range from 1st close to 3rd high
+                legout_range = {
+                    'range_start': first_legout['close'], 
+                    'range_end': third_legout['low'],  # For supply, we care about the low of the 3rd legout
+                    'symbol': first_legout['symbol'],
+                    'status': 'Gap' if not (first_to_second_gap and second_to_third_gap) else 'Valid'
+                }
+
+                validated_legouts.append(legout_range)
+
+    return validated_legouts
+```
+
+### Explanation:
+1. **Green for Demand**: All legout candles in a demand zone must have their **close > open**.
+2. **Red for Supply**: All legout candles in a supply zone must have their **close < open**.
+3. **Gap Check**: Ensure the close of the 1st and open of the 2nd are almost the same, and similarly between the 2nd and 3rd.
+4. **Range Calculation**: 
+   - For demand zones, the range is from the **close of the 1st** to the **high of the 3rd**.
+   - For supply zones, the range is from the **close of the 1st** to the **low of the 3rd**.
+
+### Example Usage:
+
+```python
+candles = [
+    {'symbol': 'AAPL', 'open': 140, 'close': 145, 'high': 146, 'low': 139},
+    {'symbol': 'AAPL', 'open': 145, 'close': 150, 'high': 151, 'low': 144},
+    {'symbol': 'AAPL', 'open': 150, 'close': 155, 'high': 156, 'low': 149},
+]
+
+# Validate for demand (green) legouts
+validated_legouts_demand = validate_3_legout_candle(candles, zone_type='demand')
+
+# Output the results
+for legout in validated_legouts_demand:
+    print(f"Symbol: {legout['symbol']}, Range: {legout['range_start']} to {legout['range_end']}, Status: {legout['status']}")
+
+candles_supply = [
+    {'symbol': 'TSLA', 'open': 700, 'close': 690, 'high': 710, 'low': 680},
+    {'symbol': 'TSLA', 'open': 690, 'close': 680, 'high': 700, 'low': 670},
+    {'symbol': 'TSLA', 'open': 680, 'close': 670, 'high': 690, 'low': 660},
+]
+
+# Validate for supply (red) legouts
+validated_legouts_supply = validate_3_legout_candle(candles_supply, zone_type='supply')
+
+for legout in validated_legouts_supply:
+    print(f"Symbol: {legout['symbol']}, Range: {legout['range_start']} to {legout['range_end']}, Status: {legout['status']}")
+```
+
+### Expected Output:
+For **demand zones**:
+```
+Symbol: AAPL, Range: 145 to 156, Status: Valid
+```
+
+For **supply zones**:
+```
+Symbol: TSLA, Range: 690 to 660, Status: Valid
+```
+
+If there’s a gap:
+```
+Symbol: AAPL, Range: 145 to 156, Status: Gap
+```
+
+### Customizing Tolerance:
+You can adjust the **tolerance** value (e.g., `0.05`) to decide how strict the validation is for determining whether the opens and closes are “almost” the same:
+
+```python
+validated_legouts = validate_3_legout_candle(candles, zone_type='demand', tolerance=0.05)
+```
+
+### Next Steps:
+- **Integrate this validation** into your existing zone analysis.
+- **Display the status** in your UI, indicating whether the 3-legout candles are valid or if there's a gap.
+
+Let me know if you need help integrating this or adjusting it further!
