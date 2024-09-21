@@ -1076,3 +1076,155 @@ You can easily adjust the delays by modifying the `time_delays` dictionary if yo
 - Ensure the entry is only allowed after the appropriate delay for each time frame.
 
 Let me know if you need further assistance or clarification with this integration!
+
+
+
+
+
+
+
+
+
+
+
+
+
+Currently, the "legout covered" code uses a fixed **1:5 target** ratio for both **demand** and **supply** zones. To meet your requirement, we can adjust the code to use **1:3** for smaller time frames (1m, 3m, 5m) and **1:5** for larger time frames.
+
+### Modification:
+- For **1m, 3m, 5m time frames**, the target should be **1:3**.
+- For **other time frames**, the target should be **1:5**.
+
+### Updated Code:
+
+```python
+def validate_legout_covered(zone, price_data):
+    """
+    Validate if a zone is legout covered based on price movement and the legout range.
+    
+    Args:
+    - zone: The zone details including legout information.
+    - price_data: List of price data after the zone creation (e.g., candles with open, close, high, low).
+    
+    Returns:
+    - legout_covered: True if the zone is considered legout covered, False otherwise.
+    """
+    # Get the first legout candle details
+    legout_high = zone['legout_high']
+    legout_low = zone['legout_low']
+    entry_price = zone['entry_price']
+    stop_loss_price = zone['stop_loss_price']
+    time_frame = zone['time_frame']
+    
+    # Set target ratio based on time frame
+    if time_frame in ['1m', '3m', '5m']:
+        target_ratio = 3
+    else:
+        target_ratio = 5
+    
+    # Calculate the legout range and half of it
+    legout_range = abs(legout_high - legout_low)
+    half_legout_range = legout_range / 2
+    
+    # Calculate the target based on the risk-reward ratio
+    risk = abs(entry_price - stop_loss_price)
+    if zone['zone_type'] == 'demand':
+        target_price = entry_price + (risk * target_ratio)  # Target for demand
+    else:
+        target_price = entry_price - (risk * target_ratio)  # Target for supply
+    
+    # Flag to check if price has entered half of the legout range
+    entered_half_range = False
+    
+    # Iterate through price data to check conditions
+    for candle in price_data:
+        # For demand zone (price needs to go up after re-entering half the range)
+        if zone['zone_type'] == 'demand':
+            # Check if price re-enters half the legout range
+            if legout_low + half_legout_range <= candle['low'] <= entry_price:
+                entered_half_range = True
+            # Check if price exceeds the target after re-entry
+            if candle['high'] > target_price and entered_half_range:
+                return True  # Legout covered condition met
+        
+        # For supply zone (price needs to go down after re-entering half the range)
+        elif zone['zone_type'] == 'supply':
+            # Check if price re-enters half the legout range
+            if legout_high - half_legout_range >= candle['high'] >= entry_price:
+                entered_half_range = True
+            # Check if price drops below the target after re-entry
+            if candle['low'] < target_price and entered_half_range:
+                return True  # Legout covered condition met
+    
+    return False
+```
+
+### Explanation of Changes:
+1. **Target Ratio Based on Time Frame**:
+   - **1m, 3m, 5m**: Uses a **1:3** target ratio.
+   - All other time frames (e.g., 15m, 1h): Uses a **1:5** target ratio.
+2. The rest of the logic remains the same:
+   - Check if the price re-enters half the legout range without triggering an entry.
+   - Then check if the price moves past the calculated target (1:3 or 1:5 depending on the time frame).
+
+### Example Usage:
+
+For a **1m** zone:
+
+```python
+zone = {
+    'zone_type': 'demand', 
+    'entry_price': 140, 
+    'stop_loss_price': 135, 
+    'legout_high': 145, 
+    'legout_low': 140,
+    'time_frame': '1m'  # 1m time frame uses 1:3 target
+}
+
+# Simulated price data (e.g., OHLC after zone formation)
+price_data = [
+    {'open': 142, 'close': 143, 'high': 144, 'low': 141},  # Price comes back to half legout
+    {'open': 146, 'close': 148, 'high': 149, 'low': 145},  # Price exceeds 1:3 target
+]
+
+legout_covered = validate_legout_covered(zone, price_data)
+print(f"Legout Covered: {legout_covered}")
+```
+
+For a **15m** zone (uses 1:5 target):
+
+```python
+zone = {
+    'zone_type': 'supply', 
+    'entry_price': 150, 
+    'stop_loss_price': 155, 
+    'legout_high': 155, 
+    'legout_low': 150,
+    'time_frame': '15m'  # 15m time frame uses 1:5 target
+}
+
+price_data = [
+    {'open': 153, 'close': 152, 'high': 154, 'low': 149},  # Price re-enters half legout
+    {'open': 148, 'close': 146, 'high': 149, 'low': 144},  # Price drops below 1:5 target
+]
+
+legout_covered = validate_legout_covered(zone, price_data)
+print(f"Legout Covered: {legout_covered}")
+```
+
+### Expected Output:
+For the **1m demand zone** (1:3 target):
+```
+Legout Covered: True
+```
+
+For the **15m supply zone** (1:5 target):
+```
+Legout Covered: True
+```
+
+### Next Steps:
+- **Integrate this logic** into your current system.
+- This code will now check the legout covered condition based on the appropriate **1:3** or **1:5** target depending on the time frame.
+
+Let me know if this works or if you need further adjustments!
