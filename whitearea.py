@@ -958,3 +958,121 @@ Let me know if you need help integrating this logic into your code or if you'd l
 - **Display the status** in your UI, indicating whether the 3-legout candles are valid or if there's a gap.
 
 Let me know if you need help integrating this or adjusting it further!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Ah, I see! You want to apply a **time delay** for entries based on the creation time of the zone, ensuring that entries only happen after a certain period. The entry should be delayed based on the time frame of the zone.
+
+For example:
+- For a **1m zone**, entry should only be allowed **15 minutes** after the zone is created.
+- For **3m or 5m zones**, entry should be allowed **75 minutes** after the zone is created.
+- For **10m or 15m zones**, entry should be allowed **1 day** after the zone is created.
+- For **other time frames**, entry should only be allowed **1 week** after the zone is created.
+
+### Steps:
+1. **Determine the time delay** based on the time frame.
+2. **Check if the current time** is after the delayed entry time.
+3. Only allow the entry if the current time has passed the delayed time.
+
+### Code Implementation:
+
+```python
+from datetime import datetime, timedelta
+
+def calculate_entry_time(zone_time_frame, zone_creation_time):
+    """
+    Calculate the earliest valid entry time based on the time frame of the zone.
+    
+    Args:
+    - zone_time_frame: The time frame of the zone (e.g., '1m', '3m', '15m').
+    - zone_creation_time: The datetime when the zone was created.
+    
+    Returns:
+    - entry_time: The earliest time when the entry is allowed.
+    """
+    # Define time delays based on the time frame
+    time_delays = {
+        '1m': timedelta(minutes=15),
+        '3m': timedelta(minutes=75),
+        '5m': timedelta(minutes=75),
+        '10m': timedelta(days=1),
+        '15m': timedelta(days=1),
+        '30m': timedelta(weeks=1),
+        '1h': timedelta(weeks=1),
+        '4h': timedelta(weeks=1)
+    }
+    
+    # Get the appropriate time delay for the given time frame
+    time_delay = time_delays.get(zone_time_frame, timedelta(weeks=1))
+    
+    # Calculate the earliest valid entry time
+    entry_time = zone_creation_time + time_delay
+    return entry_time
+
+def is_entry_allowed(zone_time_frame, zone_creation_time, current_time):
+    """
+    Check if entry is allowed based on the current time and the entry time.
+    
+    Args:
+    - zone_time_frame: The time frame of the zone (e.g., '1m', '15m').
+    - zone_creation_time: The datetime when the zone was created.
+    - current_time: The current datetime.
+    
+    Returns:
+    - allowed: True if the current time is after the entry time, False otherwise.
+    """
+    entry_time = calculate_entry_time(zone_time_frame, zone_creation_time)
+    return current_time >= entry_time
+```
+
+### Explanation:
+1. **`calculate_entry_time()`**: This function calculates the earliest time when an entry is allowed, based on the time frame of the zone and its creation time.
+2. **`is_entry_allowed()`**: This function checks if the current time has passed the delayed entry time, returning `True` if the entry is allowed.
+
+### Example Usage:
+
+```python
+# Example zone creation time: 12:30 PM
+zone_creation_time = datetime(2024, 9, 21, 12, 30)  # September 21, 2024, 12:30 PM
+current_time = datetime(2024, 9, 21, 12, 45)  # Current time is 12:45 PM
+
+# Check for a 1m time frame zone
+zone_time_frame = '1m'
+
+# Check if entry is allowed
+entry_allowed = is_entry_allowed(zone_time_frame, zone_creation_time, current_time)
+print(f"Entry allowed for {zone_time_frame} zone: {entry_allowed}")
+```
+
+### Expected Output:
+For a **1m** zone:
+- If the zone was created at 12:30 PM, the entry will only be allowed after 12:45 PM (15 minutes later).
+- If the current time is **12:45 PM** or later, it will return `True`.
+- Otherwise, it will return `False`.
+
+### Adjusting for Different Time Frames:
+- For **3m** or **5m zones**, the entry will only be allowed **75 minutes** after the zone creation.
+- For **10m** or **15m zones**, entry will be allowed **1 day** after creation.
+- For **other time frames** (e.g., 1h, 4h), entry will be allowed **1 week** later.
+
+### Customizing:
+You can easily adjust the delays by modifying the `time_delays` dictionary if you need different time rules.
+
+### Next Steps:
+- **Integrate this time-based entry logic** into your zone processing flow.
+- Ensure the entry is only allowed after the appropriate delay for each time frame.
+
+Let me know if you need further assistance or clarification with this integration!
