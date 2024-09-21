@@ -229,6 +229,9 @@ This will ensure the filter checks that TR > ATR for legin and legout candles, a
 
 
 
+                      FORMATION OF LEGOUT
+
+
 To implement the **"formation of legout"** validation, we need to calculate the range of the **legin** candle and compare it to the opening price of the **legout** candle. The condition will vary for demand and supply zones:
 
 - **Demand Zone**: The legout's opening price should not be more than **twice the range** of the legin.
@@ -309,6 +312,9 @@ validated_zones = validate_formation_of_legout(zones)
 
 
 
+                              WICK IN LEGIN
+
+
 
                To implement the **"wick in legin"** validation, we need to ensure that the **legin candle** has a wick. The wick is the part of the candle outside of the body (i.e., the difference between the high/low prices and the open/close prices). The condition will apply to both supply and demand zones.
 
@@ -387,7 +393,7 @@ Would you like help integrating this validation into your existing workflow or m
 
 
 
-
+                                       BUFFER
 
 
 
@@ -491,7 +497,7 @@ Would you like assistance with integrating this buffer logic into your code or a
 
 
 
-
+                                 MTF
 
 
 
@@ -616,7 +622,7 @@ Would you like assistance integrating this logic into your current system, or he
 
 
 
-
+                             3 LEGOUT CANDLE
 
 
 
