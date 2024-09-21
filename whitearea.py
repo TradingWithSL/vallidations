@@ -757,7 +757,7 @@ validated_legouts = validate_3_legout_candle(candles, zone_type='demand', tolera
 
 
 
-
+                            OPPOSING ZONE
 
 
 
@@ -877,7 +877,7 @@ Would you like assistance with integrating this or further customization? Let me
 
 
 
-
+                ENTRY CUSTOMISATION
 
 
 
@@ -973,7 +973,7 @@ Let me know if you need help integrating this or adjusting it further!
 
 
 
-
+                           TIME INTERVAL
 
 
 
@@ -1089,7 +1089,7 @@ Let me know if you need further assistance or clarification with this integratio
 
 
 
-
+                                LEGOUT COVERED
 
 
 
