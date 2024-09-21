@@ -223,3 +223,83 @@ legin_candle_index: Index of the legin candle (before the base).
 i: Index of the legout candle (breakout candle).
 i-1: Index of the boring candle (small base candle).
 This will ensure the filter checks that TR > ATR for legin and legout candles, and TR < ATR for boring candles
+
+
+
+
+
+
+To implement the **"formation of legout"** validation, we need to calculate the range of the **legin** candle and compare it to the opening price of the **legout** candle. The condition will vary for demand and supply zones:
+
+- **Demand Zone**: The legout's opening price should not be more than **twice the range** of the legin.
+- **Supply Zone**: The legout's opening price should not be **less than twice** the range of the legin.
+
+If the conditions are violated, we'll filter out such zones.
+
+### Here's how to implement this validation in Python:
+
+1. **Calculate the Range of the Legin Candle**:
+   The range of the legin candle is the difference between its **high** and **low** prices.
+   
+2. **Apply the Validation for Demand and Supply Zones**:
+   - **Demand**: If the legout's opening price is more than twice the legin's range, filter it out.
+   - **Supply**: If the legout's opening price is less than twice the legin's range, filter it out.
+
+Here’s the Python code to add this validation:
+
+```python
+def validate_formation_of_legout(zones):
+    validated_zones = []
+
+    for zone in zones:
+        legin_high = zone['legin_high']
+        legin_low = zone['legin_low']
+        legout_open = zone['legout_open']
+        zone_type = zone['zone_type']  # 'demand' or 'supply'
+        
+        # Calculate the legin range
+        legin_range = legin_high - legin_low
+
+        # Validation for demand zone
+        if zone_type == 'demand':
+            if legout_open <= 2 * legin_range:
+                validated_zones.append(zone)
+            else:
+                print(f"Filtered out demand zone: {zone['symbol']} (Legout open too high)")
+
+        # Validation for supply zone
+        elif zone_type == 'supply':
+            if legout_open >= 2 * legin_range:
+                validated_zones.append(zone)
+            else:
+                print(f"Filtered out supply zone: {zone['symbol']} (Legout open too low)")
+
+    return validated_zones
+```
+
+### Explanation:
+- **legin_range**: The difference between the **high** and **low** of the legin candle.
+- **Demand Validation**: If the legout's opening price is **more** than twice the legin range, it's filtered out.
+- **Supply Validation**: If the legout's opening price is **less** than twice the legin range, it's filtered out.
+
+### How to Integrate This:
+You can call this `validate_formation_of_legout` function in the part of your code where the zones are being processed before further analysis (e.g., backtesting or displaying).
+
+Example usage:
+
+```python
+zones = [
+    {'symbol': 'AAPL', 'zone_type': 'demand', 'legin_high': 150, 'legin_low': 140, 'legout_open': 285},
+    {'symbol': 'TSLA', 'zone_type': 'supply', 'legin_high': 700, 'legin_low': 680, 'legout_open': 1390},
+    # Add more zones here
+]
+
+validated_zones = validate_formation_of_legout(zones)
+
+# Now, validated_zones contains only the zones that passed the "formation of legout" validation
+```
+
+### What’s Next?
+- Let me know if you'd like to integrate this directly into your existing code, or if you need help modifying your current zone processing logic to include this validation.
+- If you need any changes or further explanation, feel free to ask!
+
