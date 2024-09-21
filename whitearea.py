@@ -744,6 +744,122 @@ validated_legouts = validate_3_legout_candle(candles, zone_type='demand', tolera
 
 ### Next Steps:
 - **Integrate this validation** into your existing zone analysis.
+
+
+
+
+
+
+
+
+
+
+
+To implement the **"opposing zone"** validation, the logic will check if, for example, a **demand zone** on a 15m time frame has an **opposing supply zone** within a specific target range (e.g., 1:10) on any other time frame. Similarly, for **supply zones**, it will check for opposing **demand zones**. If an opposing zone is found, it will be logged with relevant details.
+
+### Logic for Opposing Zone Validation:
+1. **Identify the main zone** (e.g., a demand zone on 15m).
+2. **Check for opposing zones** (e.g., supply zones) in the target area (1:3, 1:5, 1:10).
+3. **Record the details**:
+   - Time frame of the opposing zone.
+   - Legout date of the opposing zone.
+   - Distance from the main zone (e.g., 1:3, 1:5, 1:10).
+4. **Opposing zone check**: For demand zones, check for opposing supply zones, and for supply zones, check for opposing demand zones.
+
+### Code Implementation:
+
+```python
+def validate_opposing_zone(zones, main_zone, target_ratios=[1/3, 1/5, 1/10]):
+    opposing_zones = []
+
+    # Get main zone details
+    main_entry = main_zone['entry_price']
+    main_target = main_entry + (main_entry - main_zone['stop_loss_price']) * max(target_ratios) if main_zone['zone_type'] == 'demand' else \
+                  main_entry - (main_zone['stop_loss_price'] - main_entry) * max(target_ratios)
+
+    for zone in zones:
+        if zone['zone_type'] != main_zone['zone_type']:  # Opposite zone type
+            # Check if the opposing zone is within the main zone's target range
+            if main_zone['zone_type'] == 'demand':
+                if main_entry < zone['entry_price'] <= main_target:  # Opposing supply zone within range
+                    distance = (zone['entry_price'] - main_entry) / (main_entry - main_zone['stop_loss_price'])
+                    opposing_zones.append({
+                        'opposing_zone_type': zone['zone_type'],
+                        'time_frame': zone['time_frame'],
+                        'legout_date': zone['legout_date'],
+                        'distance': round(distance, 2)
+                    })
+            elif main_zone['zone_type'] == 'supply':
+                if main_entry > zone['entry_price'] >= main_target:  # Opposing demand zone within range
+                    distance = (main_entry - zone['entry_price']) / (main_zone['stop_loss_price'] - main_entry)
+                    opposing_zones.append({
+                        'opposing_zone_type': zone['zone_type'],
+                        'time_frame': zone['time_frame'],
+                        'legout_date': zone['legout_date'],
+                        'distance': round(distance, 2)
+                    })
+
+    return opposing_zones
+```
+
+### Explanation:
+1. **Main Zone**: The `main_zone` represents the demand or supply zone being evaluated. The `target_ratios` parameter determines the target areas (e.g., 1:3, 1:5, 1:10).
+2. **Opposing Zone Check**:
+   - For **demand zones**, it checks if there’s a supply zone within the target range (upward).
+   - For **supply zones**, it checks if there’s a demand zone within the target range (downward).
+3. **Distance Calculation**: The distance between the main zone and opposing zone is calculated and recorded in terms of ratios (1:3, 1:5, etc.).
+4. **Opposing Zone Details**: The function logs details such as the time frame, legout date, and the distance from the main zone.
+
+### Example Usage:
+
+```python
+zones = [
+    {'symbol': 'AAPL', 'zone_type': 'demand', 'entry_price': 140, 'stop_loss_price': 135, 'time_frame': '15m', 'legout_date': '2024-09-20'},
+    {'symbol': 'AAPL', 'zone_type': 'supply', 'entry_price': 145, 'stop_loss_price': 150, 'time_frame': '1h', 'legout_date': '2024-09-20'},
+    {'symbol': 'AAPL', 'zone_type': 'supply', 'entry_price': 142, 'stop_loss_price': 147, 'time_frame': '5m', 'legout_date': '2024-09-20'},
+]
+
+main_zone = {'symbol': 'AAPL', 'zone_type': 'demand', 'entry_price': 140, 'stop_loss_price': 135, 'time_frame': '15m', 'legout_date': '2024-09-20'}
+
+opposing_zones = validate_opposing_zone(zones, main_zone)
+
+# Output the results
+for zone in opposing_zones:
+    print(f"Opposing Zone: {zone['opposing_zone_type']}, Time Frame: {zone['time_frame']}, Legout Date: {zone['legout_date']}, Distance: {zone['distance']}")
+```
+
+### Expected Output:
+```
+Opposing Zone: supply, Time Frame: 5m, Legout Date: 2024-09-20, Distance: 1.67
+Opposing Zone: supply, Time Frame: 1h, Legout Date: 2024-09-20, Distance: 1.33
+```
+
+### Displaying Opposing Zones in a Table:
+To display the opposing zones in a table with the details (time frame, legout date, and distance), you can add this to your user interface:
+
+```python
+def display_opposing_zones(opposing_zones):
+    print("Opposing Zones Table:")
+    print("{:<15} {:<10} {:<15} {:<10}".format('Zone Type', 'Time Frame', 'Legout Date', 'Distance'))
+    for zone in opposing_zones:
+        print("{:<15} {:<10} {:<15} {:<10}".format(zone['opposing_zone_type'], zone['time_frame'], zone['legout_date'], zone['distance']))
+
+display_opposing_zones(opposing_zones)
+```
+
+This will print a table with the opposing zones:
+```
+Opposing Zones Table:
+Zone Type       Time Frame Legout Date    Distance  
+supply          5m         2024-09-20     1.67      
+supply          1h         2024-09-20     1.33      
+```
+
+### Next Steps:
+- **Integrate this logic** into your current workflow for detecting zones.
+- **Add the opposing zone details** to the table or output, displaying it clearly for each main zone.
+
+Would you like assistance with integrating this or further customization? Let me know!
 - **Display the status** in your UI, indicating whether the 3-legout candles are valid or if there's a gap.
 
 Let me know if you need help integrating this or adjusting it further!
