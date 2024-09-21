@@ -303,3 +303,82 @@ validated_zones = validate_formation_of_legout(zones)
 - Let me know if you'd like to integrate this directly into your existing code, or if you need help modifying your current zone processing logic to include this validation.
 - If you need any changes or further explanation, feel free to ask!
 
+
+
+
+
+
+
+
+               To implement the **"wick in legin"** validation, we need to ensure that the **legin candle** has a wick. The wick is the part of the candle outside of the body (i.e., the difference between the high/low prices and the open/close prices). The condition will apply to both supply and demand zones.
+
+### Logic for Wick Validation:
+- **Upper Wick**: If the **high** price of the legin candle is greater than the **close** price in a **demand zone**, or greater than the **open** price in a **supply zone**, there is an upper wick.
+- **Lower Wick**: If the **low** price is lower than the **open** price in a **demand zone**, or lower than the **close** price in a **supply zone**, there is a lower wick.
+
+### Code Implementation:
+
+```python
+def validate_wick_in_legin(zones):
+    validated_zones = []
+
+    for zone in zones:
+        legin_open = zone['legin_open']
+        legin_close = zone['legin_close']
+        legin_high = zone['legin_high']
+        legin_low = zone['legin_low']
+        zone_type = zone['zone_type']  # 'demand' or 'supply'
+
+        # Check wick for demand zone
+        if zone_type == 'demand':
+            upper_wick = legin_high > legin_close  # Upper wick in demand
+            lower_wick = legin_low < legin_open    # Lower wick in demand
+
+            if upper_wick and lower_wick:
+                validated_zones.append(zone)
+            else:
+                print(f"Filtered out demand zone: {zone['symbol']} (No wick in legin)")
+
+        # Check wick for supply zone
+        elif zone_type == 'supply':
+            upper_wick = legin_high > legin_open   # Upper wick in supply
+            lower_wick = legin_low < legin_close   # Lower wick in supply
+
+            if upper_wick and lower_wick:
+                validated_zones.append(zone)
+            else:
+                print(f"Filtered out supply zone: {zone['symbol']} (No wick in legin)")
+
+    return validated_zones
+```
+
+### Explanation:
+- **legin_open, legin_close, legin_high, legin_low**: These represent the open, close, high, and low prices of the legin candle.
+- **Upper and lower wick checks**:
+   - **Demand Zone**:
+     - **Upper Wick**: `legin_high > legin_close` (there’s a wick above the body).
+     - **Lower Wick**: `legin_low < legin_open` (there’s a wick below the body).
+   - **Supply Zone**:
+     - **Upper Wick**: `legin_high > legin_open`.
+     - **Lower Wick**: `legin_low < legin_close`.
+
+Zones that do not have a wick (either upper or lower) will be filtered out, and those with wicks will be added to `validated_zones`.
+
+### How to Use This Validation:
+
+```python
+zones = [
+    {'symbol': 'AAPL', 'zone_type': 'demand', 'legin_open': 140, 'legin_close': 145, 'legin_high': 150, 'legin_low': 138},
+    {'symbol': 'TSLA', 'zone_type': 'supply', 'legin_open': 700, 'legin_close': 690, 'legin_high': 710, 'legin_low': 680},
+    # Add more zones here
+]
+
+validated_zones = validate_wick_in_legin(zones)
+
+# Now, validated_zones contains only the zones that passed the "wick in legin" validation
+```
+
+### How to Integrate:
+You can call this function in your existing code where the zones are being processed, similar to how the "formation of legout" validation is applied.
+
+Would you like help integrating this validation into your existing workflow or modifying your current code to accommodate both validations? Let me know!
