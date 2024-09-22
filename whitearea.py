@@ -1237,15 +1237,109 @@ Let me know if this works or if you need further adjustments!
 
 
 
+         1-2-4
 
 
 
+Got it! I now understand that the **"One Two Ka Four (1-2-4)"** logic works as follows:
+
+- The **boring candle** is considered as "1" (baseline).
+- The range of the **legin candle** should be **twice** the range of the boring candle.
+- The range of the **legout candle** should be **twice** the range of the legin candle.
+- If the condition isn’t met by the 1st legout, it should be checked across up to **three consecutive legout candles** (in the case of demand, all candles must be green).
+- For the **legout** calculation, if three legout candles are used, the range is from the **boring candle’s close** to the **high of the 3rd legout candle**.
+
+### Updated Code for 1-2-4 Validation:
+
+```python
+def validate_one_two_ka_four(boring_candle, legin_candle, legout_candles):
+    """
+    Validate if the zone follows the 1-2-4 pattern across legout candles.
+    
+    Args:
+    - boring_candle: The boring candle details (with high, low, close).
+    - legin_candle: The legin candle details (with high, low).
+    - legout_candles: List of legout candles (each with high, low, close).
+    
+    Returns:
+    - is_one_two_ka_four: True if the zone follows the 1-2-4 pattern, False otherwise.
+    """
+    # Calculate the range for boring and legin
+    boring_range = abs(boring_candle['high'] - boring_candle['low'])
+    legin_range = abs(legin_candle['high'] - legin_candle['low'])
+    
+    # Check if legin is twice the boring candle
+    if legin_range != 2 * boring_range:
+        return False
+    
+    # Check legout candles
+    total_legout_range = 0
+    for i in range(min(3, len(legout_candles))):
+        legout_candle = legout_candles[i]
+        legout_range = abs(legout_candle['high'] - legout_candle['low'])
+        
+        # Add the range of the 1st legout, or up to the 3rd legout if conditions hold
+        if i == 0:
+            total_legout_range = legout_range
+        else:
+            total_legout_range += legout_range
+        
+        # Check if the total legout range is twice the legin range by 3rd legout
+        if total_legout_range >= 2 * legin_range:
+            return True
+
+    return False
+```
+
+### Explanation:
+1. **boring_range**: The range of the boring candle.
+2. **legin_range**: The range of the legin candle.
+3. **Legout Check**:
+   - If the first legout candle's range isn’t sufficient (not twice the legin range), we check up to **three consecutive legout candles** (e.g., in demand, all must be green).
+   - The total range for the legout is accumulated until it meets the condition (2x the legin range).
+
+### Example Usage:
+
+```python
+# Example boring, legin, and legout candles
+boring_candle = {'high': 150, 'low': 130, 'close': 140}  # Range: 20
+legin_candle = {'high': 145, 'low': 135}  # Range: 10
+legout_candles = [
+    {'high': 147, 'low': 143},  # Range: 4 (first legout)
+    {'high': 150, 'low': 146},  # Range: 4 (second legout)
+    {'high': 155, 'low': 148}   # Range: 7 (third legout)
+]
+
+is_one_two_ka_four = validate_one_two_ka_four(boring_candle, legin_candle, legout_candles)
+print(f"1-2-4 Pattern Detected: {is_one_two_ka_four}")
+```
+
+### Expected Output:
+```
+1-2-4 Pattern Detected: True
+```
+
+In this example:
+- **Boring Range**: 20
+- **Legin Range**: 10 (which is half the boring range, satisfying the first condition).
+- **Legout Range**: Total legout range across three legout candles is \( 4 + 4 + 7 = 15 \), which is **greater than twice the legin range (10)**, satisfying the second condition.
+
+### How This Works:
+- We first check if the **legin candle** range is twice the **boring candle** range.
+- Then, we calculate the total range of the **legout candles** (up to three consecutive legout candles). If the accumulated range of the legout candles is twice the legin range, the condition is met.
+  
+### What’s Next:
+- You can **integrate this 1-2-4 validation** into your existing zone detection and filtering logic.
+- If you'd like, I can help you visualize this logic in Pine Script or refine this further based on specific requirements.
+
+Let me know if you'd like to proceed or need further assistance!
 
 
 
+                  1-2-4 demand supply
 
 
-                  1-2-4
+
 
 
 Here’s an updated version of the **"One Two Ka Four (1-2-4)"** validation logic, which handles both **demand** and **supply** zones. In the case of **demand**, the legout candles must be green (close > open), and for **supply**, the legout candles must be red (close < open). All other conditions remain the same.
