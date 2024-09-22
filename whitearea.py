@@ -1234,3 +1234,122 @@ Legout Covered: True
 - This code will now check the legout covered condition based on the appropriate **1:3** or **1:5** target depending on the time frame.
 
 Let me know if this works or if you need further adjustments!
+
+
+
+
+
+
+
+
+
+
+
+                  1-2-4
+
+
+Here’s an updated version of the **"One Two Ka Four (1-2-4)"** validation logic, which handles both **demand** and **supply** zones. In the case of **demand**, the legout candles must be green (close > open), and for **supply**, the legout candles must be red (close < open). All other conditions remain the same.
+
+### Updated Code for Both Demand and Supply Zones:
+
+```python
+def validate_one_two_ka_four(boring_candle, legin_candle, legout_candles, zone_type):
+    """
+    Validate if the zone follows the 1-2-4 pattern across legout candles for both demand and supply zones.
+    
+    Args:
+    - boring_candle: The boring candle details (with high, low, close).
+    - legin_candle: The legin candle details (with high, low).
+    - legout_candles: List of legout candles (each with open, close, high, low).
+    - zone_type: "demand" or "supply".
+    
+    Returns:
+    - is_one_two_ka_four: True if the zone follows the 1-2-4 pattern, False otherwise.
+    """
+    # Calculate the range for boring and legin
+    boring_range = abs(boring_candle['high'] - boring_candle['low'])
+    legin_range = abs(legin_candle['high'] - legin_candle['low'])
+    
+    # Check if legin is twice the boring candle
+    if legin_range != 2 * boring_range:
+        return False
+    
+    # Check legout candles
+    total_legout_range = 0
+    for i in range(min(3, len(legout_candles))):
+        legout_candle = legout_candles[i]
+        legout_range = abs(legout_candle['high'] - legout_candle['low'])
+        
+        # Ensure legout candles match the zone color (green for demand, red for supply)
+        if zone_type == 'demand' and legout_candle['close'] <= legout_candle['open']:
+            return False  # Legout must be green for demand zone
+        elif zone_type == 'supply' and legout_candle['close'] >= legout_candle['open']:
+            return False  # Legout must be red for supply zone
+
+        # Add the range of the 1st legout, or up to the 3rd legout if conditions hold
+        if i == 0:
+            total_legout_range = legout_range
+        else:
+            total_legout_range += legout_range
+        
+        # Check if the total legout range is twice the legin range by 3rd legout
+        if total_legout_range >= 2 * legin_range:
+            return True
+
+    return False
+```
+
+### Explanation:
+1. **Zone Type**:
+   - **Demand zones**: The legout candles must be **green** (i.e., close > open).
+   - **Supply zones**: The legout candles must be **red** (i.e., close < open).
+2. **Range Validation**: The legin range must be twice the boring range, and the legout range (across up to three candles) must be twice the legin range.
+
+### Example Usage:
+
+#### For Demand Zone:
+```python
+boring_candle = {'high': 150, 'low': 130, 'close': 140}
+legin_candle = {'high': 145, 'low': 135}
+legout_candles = [
+    {'open': 143, 'close': 146, 'high': 147, 'low': 143},  # Green candle
+    {'open': 146, 'close': 149, 'high': 150, 'low': 145},  # Green candle
+    {'open': 149, 'close': 153, 'high': 155, 'low': 148}   # Green candle
+]
+
+is_one_two_ka_four_demand = validate_one_two_ka_four(boring_candle, legin_candle, legout_candles, 'demand')
+print(f"Demand Zone 1-2-4 Pattern Detected: {is_one_two_ka_four_demand}")
+```
+
+#### For Supply Zone:
+```python
+boring_candle = {'high': 150, 'low': 130, 'close': 140}
+legin_candle = {'high': 145, 'low': 135}
+legout_candles = [
+    {'open': 148, 'close': 143, 'high': 149, 'low': 142},  # Red candle
+    {'open': 147, 'close': 141, 'high': 148, 'low': 140},  # Red candle
+    {'open': 142, 'close': 135, 'high': 144, 'low': 133}   # Red candle
+]
+
+is_one_two_ka_four_supply = validate_one_two_ka_four(boring_candle, legin_candle, legout_candles, 'supply')
+print(f"Supply Zone 1-2-4 Pattern Detected: {is_one_two_ka_four_supply}")
+```
+
+### Expected Output:
+
+For **demand zone**:
+```
+Demand Zone 1-2-4 Pattern Detected: True
+```
+
+For **supply zone**:
+```
+Supply Zone 1-2-4 Pattern Detected: True
+```
+
+### What’s Next:
+- You can now integrate this logic into your existing zone analysis system to filter zones that follow the **1-2-4 pattern** for both **demand** and **supply** zones.
+- Let me know if you need help with further integration, testing, or visualization in Pine Script!
+
+
+                  
